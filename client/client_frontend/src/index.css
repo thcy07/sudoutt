@@ -54,6 +54,35 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Global layout + sizing so centering works predictably */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  /* removes default whitespace */
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Make the whole app centered on the screen */
+body {
+  display: flex;
+  justify-content: center;
+  /* center horizontally */
+  align-items: flex-start;
+  /* top aligned; change to center for vertical center */
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

@@ -1,0 +1,318 @@
+/* CSS stored with the app code (requirement #2). */
+
+:root {
+  --cell: 44px;
+  --thin: 1px;
+  --bold: 4px;
+  --line: rgba(255, 255, 255, 0.65);
+  --thin-line: rgba(255, 255, 255, 0.25);
+}
+
+.page {
+  min-height: 100vh;
+
+  /* This is the key: make the whole app a centered column with a width */
+  width: min(900px, 100%);
+  margin: 0 auto;
+
+  transform: scale(1.25);
+  transform-origin: top center;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  font-family: system-ui, Arial, sans-serif;
+  padding: 16px;
+}
+
+.header,
+.panel,
+.boardWrap {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  /* was space-between */
+  text-align: center;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.sub {
+  margin: 4px 0;
+}
+
+.panel {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.hand {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 12px 0;
+}
+
+.chip {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #aaa;
+}
+
+.moveForm {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.moveForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.moveForm input {
+  padding: 8px;
+  width: 120px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border: 1px solid #333;
+  background: white;
+  color: #000; /* force black text on the buttons */
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.error {
+  margin-top: 10px;
+  color: #b00020;
+  font-weight: 600;
+}
+
+.info {
+  margin-top: 10px;
+}
+
+.boardWrap {
+  margin-top: 16px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  /* board on the left, scores sidebar on the right */
+}
+
+/* .note {
+  color: #555;
+  margin-top: 10px;
+} */
+
+.panel {
+  width: 320px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  /* Allow the panel to stretch to the height of the grid next to it */
+  align-self: stretch;
+  /* remove hard min-height so the panel height follows the grid height */
+  min-height: auto;
+}
+
+@media (max-width: 900px) {
+  .boardWrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .panel {
+    width: 100%;
+    min-height: auto;
+  }
+}
+
+/* ------------------------------------------------------------------
+    BOARD CONTAINER:
+    - outer border: consistent on all sides
+    - thin grid: drawn by cell borders (top+left only)
+    - thick 3x3 lines: drawn ONCE by background gradients 
+   ------------------------------------------------------------------ */
+
+/* Layout: header row + play area below */
+.boardGrid {
+  display: grid;
+  grid-template-columns: 36px repeat(9, 44px);
+  grid-template-rows: 36px auto;
+  gap: 0;
+  user-select: none;
+  align-items: center;
+}
+
+/* Top-left empty corner */
+.corner {
+  width: 36px;
+  height: 36px;
+}
+
+/* Column headers */
+.colHeader {
+  width: 44px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #555;
+}
+
+/* play area wrapper: left labels + 9x9 grid */
+.playAreaWrap {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: 36px auto;
+}
+
+/* Left labels A–I */
+.rowHeaders {
+  display: grid;
+  grid-template-rows: repeat(9, var(--cell));
+}
+
+.rowHeader {
+  width: 36px;
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #555;
+}
+
+/* ✅ SINGLE 9×9 GRID CONTAINER (this is what you were missing) */
+.grid9 {
+  display: grid;
+  grid-template-columns: repeat(9, var(--cell));
+  grid-template-rows: repeat(9, var(--cell));
+  position: relative;
+
+  /* Outer border — thinner than before */
+  box-shadow: 0 0 0 2px var(--line) inset;
+
+  background:
+    /* Thin vertical grid lines */
+    repeating-linear-gradient(to right,
+      transparent 0,
+      transparent calc(var(--cell) - 1px),
+      var(--thin-line) calc(var(--cell) - 1px),
+      var(--thin-line) var(--cell)),
+
+    /* Thin horizontal grid lines */
+    repeating-linear-gradient(to bottom,
+      transparent 0,
+      transparent calc(var(--cell) - 1px),
+      var(--thin-line) calc(var(--cell) - 1px),
+      var(--thin-line) var(--cell)),
+
+    /* Bold vertical 3×3 separators */
+    linear-gradient(to right,
+      transparent 0,
+      transparent calc(var(--cell) * 3),
+      var(--line) calc(var(--cell) * 3),
+      var(--line) calc(var(--cell) * 3 + 2px),
+      transparent calc(var(--cell) * 3 + 2px),
+      transparent calc(var(--cell) * 6),
+      var(--line) calc(var(--cell) * 6),
+      var(--line) calc(var(--cell) * 6 + 2px),
+      transparent calc(var(--cell) * 6 + 2px),
+      transparent 100%),
+
+    /* Bold horizontal 3×3 separators */
+    linear-gradient(to bottom,
+      transparent 0,
+      transparent calc(var(--cell) * 3),
+      var(--line) calc(var(--cell) * 3),
+      var(--line) calc(var(--cell) * 3 + 2px),
+      transparent calc(var(--cell) * 3 + 2px),
+      transparent calc(var(--cell) * 6),
+      var(--line) calc(var(--cell) * 6),
+      var(--line) calc(var(--cell) * 6 + 2px),
+      transparent calc(var(--cell) * 6 + 2px),
+      transparent 100%);
+
+  background-repeat: no-repeat;
+}
+
+/* Cells: thin grid lines only once (top+left) */
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* IMPORTANT: no borders at all */
+  border: none;
+
+  font-size: 18px;
+  font-weight: 650;
+  background: transparent;
+
+  position: relative;
+  z-index: 1;
+  /* above grid lines */
+}
+
+/* Nicer hover */
+.cell:hover {
+  background: rgba(221, 221, 18, 0.18);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+/* Highlight selected cell in beginner mode */
+.cell.selected {
+  outline: 3px solid rgba(100, 108, 255, 0.9);
+  background: rgba(100, 108, 255, 0.06);
+}
+
+/* Player coloring */
+.pA {
+  background: rgba(0, 80, 255, 0.12);
+}
+
+.pB {
+  background: rgba(255, 0, 80, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  .page {
+    max-width: 1000px;
+  }
+}

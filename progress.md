@@ -227,5 +227,81 @@ The project is now ready to:
 
 ---
 
+## Recent Work — Backend changes
+
+- **What changed:** Removed accidental React imports from `server/index.js`, converted backend code to CommonJS `require()` syntax, and ensured all React code remains in the `client/src/` folder.
+- **Packages installed:** `express`, `cors`, `zod`, and dev dependency `nodemon` (installed earlier). Confirmed dependencies via `npm install` in `server/`.
+- **Server entry & scripts:** Created `server/index.js` as the backend entry point. Added a simple health route to verify the server:
+
+```js
+app.get('/health', (req, res) => {
+  res.json({ ok: true });
+});
+```
+
+- **How we tested it:** Started the backend (with `nodemon` during development) and visited `http://localhost:3001/health` to confirm a `{"ok": true}` response.
+- **Why the fix was needed:** Node treats files as CommonJS by default; importing React code caused `SyntaxError: Cannot use import statement outside a module`. Moving React code back to the frontend and using `require()` on the server resolved the error.
+- **Next backend steps:** Add API routes for game state, connect validation (using `zod`), and implement CORS to allow cross-origin requests from the frontend.
+
 **End of progress log.**
+
+_Conversation: 2026-02-03_
+
+_Change: 2026-02-05_
+
+## Recent Work — Frontend changes
+
+- **What changed:** Completed the Vite + React setup in the `client/` folder, removed unneeded starter files, and verified the dev server runs at `http://localhost:5173`.
+- **Commands used:**
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+- **Notes:** Cleaned `client/src/` by removing example components and leaving a minimal `App.jsx` and `main.jsx` to start building the game UI. Confirmed the app loads in the browser.
+
+## Recent Work — Game UI & Logic (placeholders)
+
+- **What changed:** Added initial plan and code placeholders for connecting the frontend to the backend and rendering the 9×9 board.
+- **Fetch example (placeholder):** Use this snippet in `client/src` to fetch game state from the backend:
+
+```js
+// Placeholder: replace with actual route when implemented
+async function fetchGameState() {
+  const res = await fetch('http://localhost:3001/game');
+  if (!res.ok) throw new Error('Failed to fetch game state');
+  return res.json();
+}
+```
+
+- **Board render placeholder:** A small React snippet to start the 9×9 board UI in `client/src/App.jsx`:
+
+```jsx
+function Board() {
+  const cells = Array.from({ length: 81 }, (_, i) => i);
+  return (
+    <div className="board">
+      {cells.map(i => (
+        <div key={i} className="cell">{/* placeholder */}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+- **Image / screenshot placeholders:** Add images to the `images/` folder and update paths here. Example placeholders:
+
+- `images/image-frontend-load.png` — screenshot of Vite app loaded in browser
+- `images/image-fetch-example.png` — example network request screenshot
+
+- **Next UI steps:** Implement `fetch('/game')` backend route, render board state from server, add input handling and `zod` validation client-side, and create visuals for forced-board highlighting.
+
+
+**End of progress log.**
+
+_Conversation: 2026-02-03_
+
+_Change: 2026-02-05_
 

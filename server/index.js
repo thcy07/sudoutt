@@ -27,8 +27,10 @@ let game = createNewGame();
  * Why: It gives reliable, readable input validation with good error messages.
  */
 const moveSchema = z.object({
+  // row/col are zero-based indexes (0..8) used throughout server logic
   row: z.number().int().min(0).max(8),
   col: z.number().int().min(0).max(8),
+  // value is the Sudoku number 1..9
   value: z.number().int().min(1).max(9),
 });
 
@@ -39,7 +41,12 @@ app.get("/health", (req, res) => {
 
 /** Get current game state */
 app.get("/api/state", (req, res) => {
-  res.json(game);
+  // include a convenience `numbersUsed` read-only value for clients
+  const totalLeft = Object.values(game.poolCounts || {}).reduce((s, v) => s + (v || 0), 0);
+  const numbersUsed = 81 - totalLeft;
+  const out = structuredClone(game);
+  out.numbersUsed = numbersUsed;
+  res.json(out);
 });
 
 /**
@@ -55,7 +62,7 @@ app.post("/api/move", (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({
       ok: false,
-      error: "Invalid payload. row/col must be 0-8 and value must be 1-9.",
+      error: "Invalid payload. row/col must be A-I and value must be 1-9.",
       details: parsed.error.issues,
       game,
     });
@@ -76,13 +83,48 @@ app.post("/api/move", (req, res) => {
 
   // 3) If move worked, update game and return it
   game = result.game;
+  // include numbersUsed for convenience
+  const totalLeft = Object.values(game.poolCounts || {}).reduce((s, v) => s + (v || 0), 0);
+  game.numbersUsed = 81 - totalLeft;
   return res.json({ ok: true, game });
 });
 
 /** Reset game (useful during dev/testing) */
 app.post("/api/reset", (req, res) => {
   game = createNewGame();
+  // attach numbersUsed
+  const totalLeft = Object.values(game.poolCounts || {}).reduce((s, v) => s + (v || 0), 0);
+  game.numbersUsed = 81 - totalLeft;
   res.json({ ok: true, game });
+});
+
+/** Regenerate current player's hand by returning old numbers to the pool and drawing new ones.
+ * This is only allowed after 45 numbers have been used by both players combined.
+ */
+app.post("/api/regenerate", (req, res) => {
+  const totalLeft = Object.values(game.poolCounts || {}).reduce((s, v) => s + (v || 0), 0);
+  const numbersUsed = 81 - totalLeft;
+  if (numbersUsed < 45) {
+    return res.status(400).json({ ok: false, error: "Regenerate allowed after 45 numbers have been used.", game });
+  }
+
+  const player = game.currentPlayer;
+
+  // Return current hand numbers back into the pool (only non-null slots)
+  for (const v of game.hands[player]) {
+    if (v != null) {
+      game.poolCounts[v] = (game.poolCounts[v] || 0) + 1;
+    }
+  }
+
+  // Draw a fresh hand for the player
+  game.hands[player] = drawHand(game.poolCounts);
+
+  // Recompute numbersUsed and attach for convenience
+  const totalLeftAfter = Object.values(game.poolCounts || {}).reduce((s, v) => s + (v || 0), 0);
+  game.numbersUsed = 81 - totalLeftAfter;
+
+  return res.json({ ok: true, game });
 });
 
 const PORT = process.env.PORT || 3001;
@@ -100,26 +142,60 @@ app.listen(PORT, () => {
  * - hands: each player has 3 random numbers (1..9) they are allowed to play
  */
 function createNewGame() {
+  // Initialize a pool of available numbers (1..9 each available 9 times)
+  const poolCounts = createPoolCounts();
+
   return {
     board: Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => null)),
     currentPlayer: "A",
     forcedBoard: null, // null means you can play anywhere
+    // draw initial hands while consuming from the pool
     hands: {
-      A: drawHand(),
-      B: drawHand(),
+      A: drawHand(poolCounts),
+      B: drawHand(poolCounts),
     },
+    // expose the pool on the game state so subsequent draws use it
+    poolCounts,
     scores: { A: 0, B: 0 },
     lastMove: null,
   };
 }
 
-function drawHand() {
-  // returns 3 random numbers from 1..9 (duplicates allowed unless you want otherwise)
-  return [rand1to9(), rand1to9(), rand1to9()];
+/** Create initial pool with 9 copies of each number 1..9 */
+function createPoolCounts() {
+  const p = {};
+  for (let n = 1; n <= 9; n++) p[n] = 9;
+  return p;
 }
 
-function rand1to9() {
-  return Math.floor(Math.random() * 9) + 1;
+/** Draw a single number from the pool using weighted sampling by remaining counts.
+ * Returns the number (1..9) or null if pool exhausted.
+ * Decrements the pool count for the drawn number.
+ */
+function drawFromPool(pool) {
+  let total = 0;
+  for (let n = 1; n <= 9; n++) total += pool[n] || 0;
+  if (total <= 0) return null;
+
+  let r = Math.floor(Math.random() * total) + 1;
+  for (let n = 1; n <= 9; n++) {
+    const cnt = pool[n] || 0;
+    if (r <= cnt) {
+      pool[n] = cnt - 1;
+      return n;
+    }
+    r -= cnt;
+  }
+  return null;
+}
+
+/** Draw a hand of up to 3 numbers from the pool. If pool runs out, hand slots may be null. */
+function drawHand(pool) {
+  const hand = [];
+  for (let i = 0; i < 3; i++) {
+    hand.push(drawFromPool(pool));
+  }
+  return hand;
 }
 
 /**
@@ -164,7 +240,8 @@ function tryApplyMove(gameState, row, col, value) {
   g.lastMove = { player: g.currentPlayer, row, col, value };
 
   // Replace used hand value with a new random number
-  g.hands[g.currentPlayer][idx] = rand1to9();
+  // draw replacement from the shared pool (may be null if pool exhausted)
+  g.hands[g.currentPlayer][idx] = drawFromPool(g.poolCounts);
 
   // Forced-board update:
   // Your move inside local board (row%3, col%3) dictates next big board.
