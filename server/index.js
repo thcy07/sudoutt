@@ -12,10 +12,14 @@ const mongoose = require("mongoose");
 const bcrypt   = require("bcryptjs");
 const jwt      = require("jsonwebtoken");
 const { z }    = require("zod");
-require("dotenv").config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "*",           // allow all origins (fine for dev + Railway)
+  methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+app.options("*", cors()); // handle preflight requests
 app.use(express.json());
 
 // ─── Env / config ────────────────────────────────────────────────
