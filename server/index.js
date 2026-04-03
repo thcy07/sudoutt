@@ -15,11 +15,10 @@ const { z }    = require("zod");
 
 const app = express();
 app.use(cors({
-  origin: "*",           // allow all origins (fine for dev + Railway)
+  origin: "*",
   methods: ["GET", "POST", "DELETE", "PUT", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
-app.options("*", cors()); // handle preflight requests
 app.use(express.json());
 
 // ─── Env / config ────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import "./App.css";
 import logo from "./assets/sudoku_grid.png";
 
-const API_BASE = "http://localhost:3001";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:3001";
 
 // ─────────────────────────────────────────────
 //  GRID CONSTANTS
